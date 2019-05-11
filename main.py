@@ -11,8 +11,9 @@ class Player:
         self.height = 40
         self.enemiesKilled = 0
         self.hp = 10
+        self.fullHp = self.hp
         self.xLoc = width / 2 - self.width / 2
-        self.yLoc = height - self.height / 2
+        self.yLoc = height - self.height
         
         # movement variables
         self.xMove = 0
@@ -114,12 +115,30 @@ def load(image):
 
 def blitImage(image, xy):
     screen.blit(image, xy)
+def displayHp():
+    full = player.fullHp
+    hp = player.hp
+    
+    # red bar
+    rectangle(screen, (255, 0, 0), (10, height + hudHeight - (hudHeight / 2), player.fullHp * 10, 20))
+    if hp > 0:
+        # green bar
+        rectangle(screen, (0, 255, 0), (10, height + hudHeight - (hudHeight / 2), player.hp *10, 20))
+    
+    # put HP text
+    text(screen, 'impact', 20, f'{player.hp * 10}%', (0,0,0), (45, height + hudHeight - (hudHeight / 2 + 2)))
+#def displayHealth():
+#    rectangle([])
 # initiate pygame
 pygame.init()
 pygame.font.init()
 
-width, height = 700, 400
-screen = pygame.display.set_mode((width,height)) 
+# HUD
+hudHeight = 100
+
+
+width, height = 400, 700 - hudHeight
+screen = pygame.display.set_mode((width,height + hudHeight)) 
 pygame.display.set_caption('Shooter Game')
 
 # colors list
@@ -136,6 +155,9 @@ backgroundColor = black
 gameRound = 1
 gameState = 'play'
 
+
+
+# make multiplyer for enemies
 enemiesToSpawn = gameRound * random.randint(1,3)
 # player stuff
 player = Player()
@@ -143,7 +165,7 @@ player = Player()
 bulletWidth, bulletHeight = 5, 5
 
 frame = 0
-enemySpeed = 1
+enemySpeed = 5
 
 # load player sprite
 
@@ -177,14 +199,33 @@ while True:
     
     frame += 1
 
-    # round is over or not started
+    # round complete
     if gameState == 'round_complete':
         gameRound += 1
         enemiesToSpawn = gameRound * random.randint(1,3)
         gameState = 'play'
-
         
+        while True:
+            exit = False
+            # fill background
+            screen.fill((0,0,0))
 
+            # delete bullets
+            bullets = []
+
+            # make x and y move 0
+            player.xMove, player.yMove = 0, 0
+            text(screen, 'impact', 20, f'Round {gameRound}...SPACE TO CONTINUE', white, [20, (height + hudHeight) / 2])
+            update()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        exit = True
+                        break
+            if exit:
+                break
     # keyboard handler
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -255,22 +296,26 @@ while True:
                 # decrement num of enemies to spawn
                 enemiesToSpawn -= 1
 
-    
+    # draw ground
+    rectangle(screen, (255, 255, 255), (0, height, width, 10))
+
     # print out enemies
     for enemy in enemies:
         # current enemies position in array if need to delete
         enemyIndex = enemies.index(enemy)
 
         # check if out of bounds
-        if enemy.y > height:
-            enemies.remove(enemy)
+        if enemy.y > height - enemy.height:
+            enemy.isDead = True
 
         # check if enemy colliding with player
         if isCollision(enemy.getXY(), [player.xLoc, player.yLoc], enemy.width,
          enemy.height, player.width, player.height):
-
+            
             del enemies[enemyIndex]
-            player.hp -= 1
+
+            if player.hp >0:
+                player.hp -= 1
 
         # enemy is not dead
         if enemy.isDead == False:
@@ -301,29 +346,7 @@ while True:
                     # enemy hp is zero or below
                     if enemy.hp <= 0:
                         enemy.isDead = True
-                      
 
-                    # new enemy is hit
-                    #if enemy.isDead == False:
-                    
-                    
-                    # enemy is dead
-                    #enemy.isDead = True                   
-                    
-                    # delete the bullet
-                    
-                    
-                
-
-
-
-
-                    '''
-                    # add enemies killed
-                    player.enemiesKilled += 1
-                    if enemyFrequency > 10:
-                        enemyFrequency -= 1
-                    '''
         # explosion animation finished
         if enemy.explodeIndex == len(enemyExplosion) - 1:
             # delete enemy
@@ -332,6 +355,8 @@ while True:
         # updates the enemy index 
         
     displayBullets()
+    displayHp()
+
     
     # draw character
     player.update()
@@ -341,7 +366,7 @@ while True:
     if len(enemies) <= 0 and enemiesToSpawn <= 0:
         gameState = 'round_complete'
 
-    text(screen, 'Comic Sans MS', 10, f'HP:{player.hp}', white, [0, 0])
+    #text(screen, 'impact', 10, f'HP:{player.hp}', white, [0, 0])
     text(screen, 'Comic Sans MS', 10, f'Round:{gameRound}', white, [0, 30])
     text(screen, 'Comic Sans MS', 10, f'NeedToSpawn:{enemiesToSpawn}', white, [0, 60])
     #text(screen, 'Comic Sans MS', 10, f'frame:{frame}', white, [0, 90])
