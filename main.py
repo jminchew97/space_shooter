@@ -21,10 +21,12 @@ class Player:
         self.moveSpeed = 5
         self.weapons = []
         self.defaultShip = pygame.image.load('spaceship.png')
-        self.points = 0
+        self.coins = 0
     def update(self):
          
         blitImage(self.defaultShip, [self.xLoc, self.yLoc])
+    def getXY(self):
+        return [self.xLoc, self.yLoc]
 class Bullet:
     def __init__(self, x, y, bType='default'):
         self.x = x
@@ -42,6 +44,7 @@ class Enemy:
         self.explodeIndex = 0
         self.isDead = False
         self.eType = eType
+        self.droppedCoin = False
         if eType == 'default':
             self.hp = random.randint(1,2)
             self.width = 20
@@ -66,6 +69,7 @@ class Enemy:
             self.explodeIndex += 1
         else:
             self.explodeIndex = 0
+
 def spawnEnemies(numEnemies):
     for x in range(1, numEnemies):
         enemies.append
@@ -115,6 +119,18 @@ def load(image):
 
 def blitImage(image, xy):
     screen.blit(image, xy)
+def coinUpdate():
+    for xy in coins:
+        
+        xy[1] += coinSpeed
+        rectangle(screen, (255,215,0), ((xy[0],xy[1]), (coinWidth, coinHeight)))
+        
+        # check if coin collide with player
+        if isCollision([xy[0], xy[1]], player.getXY(), coinWidth, coinHeight, player.width, player.height):
+            player.coins += 1
+            coins.remove(xy)
+        elif xy[1] > height + hudHeight:
+            coins.remove(xy)
 def displayHp():
     full = player.fullHp
     hp = player.hp
@@ -127,9 +143,12 @@ def displayHp():
     
     # put HP text
     text(screen, 'impact', 20, f'{player.hp * 10}%', (0,0,0), (45, height + hudHeight - (hudHeight / 2 + 2)))
-#def displayHealth():
-#    rectangle([])
-# initiate pygame
+def debugger(debugList):
+    initPos = 0
+    for debug in debugList:
+        initPos += 30
+        text(screen, 'Comic Sans MS', 10, f'{debug[0]}: {debug[1]}', white, [0, initPos])
+
 pygame.init()
 pygame.font.init()
 
@@ -165,7 +184,7 @@ player = Player()
 bulletWidth, bulletHeight = 5, 5
 
 frame = 0
-enemySpeed = 5
+
 
 # load player sprite
 
@@ -189,14 +208,26 @@ enemies = []
 bullets = []
 place_enemy = 0
 enemyLimit = 1000000
+enemySpeed = 2
 enemyHeight = 20
 enemyWidth = 20
-enemyFrequency = 100
+enemyFrequency = 50
 screenStart = 500
+# coins
+coinSpeed = 5
+coins = []
+coinWidth = 10
+coinHeight = coinWidth
 
+# debug list
 
 while True:
-    
+    debug_list = [
+    ['Player coins', player.coins],
+ ['Enemies', len(enemies)],
+ ['Bullets', len(bullets)],
+ ['coinsOnScreen:', len(coins)]
+]
     frame += 1
 
     # round complete
@@ -299,6 +330,10 @@ while True:
     # draw ground
     rectangle(screen, (255, 255, 255), (0, height, width, 10))
 
+    # make coins fall
+    coinUpdate()
+
+
     # print out enemies
     for enemy in enemies:
         # current enemies position in array if need to delete
@@ -335,6 +370,8 @@ while True:
             for bullet in bullets:
                 # get bullet index
                 bulletIndex = bullets.index(bullet)
+                if bullet.y < 0:
+                    del bullets[bulletIndex]
 
                 # bullet is colliding with enemy
                 if isCollision(enemy.getXY(), bullet.getXY(), enemy.width, enemy.height, bulletWidth, bulletHeight):
@@ -346,7 +383,12 @@ while True:
                     # enemy hp is zero or below
                     if enemy.hp <= 0:
                         enemy.isDead = True
-
+                        if enemy.droppedCoin == False:
+                            coins.append(enemy.getXY())
+                            enemy.droppedCoin = True
+                        # append coin with xy position
+                    
+                        
         # explosion animation finished
         if enemy.explodeIndex == len(enemyExplosion) - 1:
             # delete enemy
@@ -357,7 +399,6 @@ while True:
     displayBullets()
     displayHp()
 
-    
     # draw character
     player.update()
     #screen.blit(spaceship, player.xLoc, player.player.yLoc)
@@ -365,12 +406,12 @@ while True:
     # check if enemies are dead
     if len(enemies) <= 0 and enemiesToSpawn <= 0:
         gameState = 'round_complete'
-
+       
     #text(screen, 'impact', 10, f'HP:{player.hp}', white, [0, 0])
-    text(screen, 'Comic Sans MS', 10, f'Round:{gameRound}', white, [0, 30])
-    text(screen, 'Comic Sans MS', 10, f'NeedToSpawn:{enemiesToSpawn}', white, [0, 60])
+    
+    #text(screen, 'Comic Sans MS', 10, f'bullets:{len(bullets)}', white, [0, 60])
     #text(screen, 'Comic Sans MS', 10, f'frame:{frame}', white, [0, 90])
-    text(screen, 'Comic Sans MS', 10, f'EnemyFreq:{enemyFrequency}', white, [0, 120])
+    debugger(debug_list)
     # uses flip to update the screen
     update()
     # FPS
