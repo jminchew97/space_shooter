@@ -70,6 +70,54 @@ class Enemy:
         else:
             self.explodeIndex = 0
 
+class Button:
+    def __init__(self, text, size, text_color, font = 'Comic Sans MS'):
+        self.text = text
+        self.x, self.y = 0,0
+        
+        self.noHover= (147, 147, 146)
+        self.hover = (200, 200, 200)
+        self.color = self.noHover
+        self.text_color = text_color
+        self.isHovering = False
+        # create font
+        self.font = pygame.font.SysFont(font, size)
+        # render font into surface
+        self.font_surface = self.font.render(text, False, self.text_color)
+        # get width and height of font
+        self.width, self.height = self.font.size(text)
+    def getXY(self):
+        return [self.x, self.y]
+    def draw(self, surface):
+        
+        if self.isMouseHover():
+            
+            rectangle(screen, self.hover, (self.x, self.y, self.width, self.height))
+        
+        else:
+            rectangle(screen, self.noHover, (self.x, self.y, self.width, self.height))
+        surface.blit(self.font_surface, self.getXY())
+        
+        
+    def isMouseHover(self):
+        if isCollision([mouse_coords[0], mouse_coords[1]], self.getXY(), 1, 1, self.width, self.height):
+            return True
+        else:
+            return False
+    def isClick(self, status):
+        left = mouse_status[0]
+        middle = mouse_status[1]
+        right = mouse_status[2]
+        if self.isMouseHover() and mouse_status == status:
+            return True
+
+
+
+
+
+
+
+
 def spawnEnemies(numEnemies):
     for x in range(1, numEnemies):
         enemies.append
@@ -123,8 +171,8 @@ def coinUpdate():
     for xy in coins:
         
         xy[1] += coinSpeed
-        rectangle(screen, (255,215,0), ((xy[0],xy[1]), (coinWidth, coinHeight)))
-        
+        #rectangle(screen, (255,215,0), ((xy[0],xy[1]), (coinWidth, coinHeight)))
+        blitImage(coin_image, [xy[0], xy[1]])
         # check if coin collide with player
         if isCollision([xy[0], xy[1]], player.getXY(), coinWidth, coinHeight, player.width, player.height):
             player.coins += 1
@@ -195,12 +243,15 @@ enemyIdle = [pygame.image.load('sprite_00.png'), pygame.image.load('sprite_01.pn
 pygame.image.load('sprite_05.png'), pygame.image.load('sprite_06.png'), pygame.image.load('sprite_07.png'), 
 pygame.image.load('sprite_08.png'), pygame.image.load('sprite_09.png')]
 
+# enemy explosion frames
 enemyExplosion = [pygame.image.load('explosion00.png'), pygame.image.load('explosion01.png'), pygame.image.load('explosion02.png'),
 pygame.image.load('explosion03.png'), pygame.image.load('explosion04.png'), pygame.image.load('explosion05.png'), 
 pygame.image.load('explosion06.png'), pygame.image.load('explosion07.png'), pygame.image.load('explosion08.png'),
  pygame.image.load('explosion09.png')]
 
-# indexes for animation
+# coin image
+coin_image = pygame.image.load('coin.png')
+
 
 
 # enemy stuff
@@ -219,6 +270,16 @@ coins = []
 coinWidth = 10
 coinHeight = coinWidth
 
+# round screen
+
+# buttons
+nextButton = Button('Next', 25,(0,0,0))
+nextButton.x, nextButton.y = width - nextButton.width, height - nextButton.height + hudHeight
+
+# text
+round_text = Button(f'Round {gameRound} complete', 25, (0,0,0))
+round_text.x = width / 2 - (round_text.width / 2)
+
 # debug list
 
 while True:
@@ -230,24 +291,40 @@ while True:
 ]
     frame += 1
 
+    
+
+
+
     # round complete
     if gameState == 'round_complete':
         gameRound += 1
         enemiesToSpawn = gameRound * random.randint(1,3)
         gameState = 'play'
-        
+        # delete bullets
+        bullets = []
         while True:
             exit = False
             # fill background
             screen.fill((0,0,0))
+            
+            # get mouse event
+            mouse_status = pygame.mouse.get_pressed()
+            # get mouse coordinates
+            mouse_coords = pygame.mouse.get_pos()
 
-            # delete bullets
-            bullets = []
+            nextButton.isMouseHover()
+            if nextButton.isClick((1,0,0)):
+                exit = True
+            # draw next round button
+            nextButton.draw(screen)
+            round_text.draw(screen)
+            
 
             # make x and y move 0
             player.xMove, player.yMove = 0, 0
-            text(screen, 'impact', 20, f'Round {gameRound}...SPACE TO CONTINUE', white, [20, (height + hudHeight) / 2])
-            update()
+            
+            # get mouse coords
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -255,8 +332,12 @@ while True:
                     if event.key == pygame.K_SPACE:
                         exit = True
                         break
+
+            # update screen
+            update()
             if exit:
                 break
+            clock.tick(30)
     # keyboard handler
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -404,13 +485,12 @@ while True:
     #screen.blit(spaceship, player.xLoc, player.player.yLoc)
     
     # check if enemies are dead
-    if len(enemies) <= 0 and enemiesToSpawn <= 0:
+    if len(enemies) <= 0 and enemiesToSpawn <= 0 and len(coins) == 0:
         gameState = 'round_complete'
        
-    #text(screen, 'impact', 10, f'HP:{player.hp}', white, [0, 0])
     
-    #text(screen, 'Comic Sans MS', 10, f'bullets:{len(bullets)}', white, [0, 60])
-    #text(screen, 'Comic Sans MS', 10, f'frame:{frame}', white, [0, 90])
+
+    #print(mouse_coords)
     debugger(debug_list)
     # uses flip to update the screen
     update()
