@@ -111,7 +111,22 @@ class Button:
         if self.isMouseHover() and mouse_status == status:
             return True
 
+class Text:
+    def __init__(self):
+        self.width = 0
+        self.height = 0
+    def draw(self, size, text, color, xy,surface, font='Comic Sans MS'):
+        # create the font
+        font = pygame.font.SysFont(font, size)
 
+        # set height, width
+        self.width, self.height = font.size(text)
+
+        # create the text surface
+        text_surface = font.render(text, False, color)
+
+        # blit 
+        surface.blit(text_surface, xy)
 
 
 
@@ -276,10 +291,13 @@ coinHeight = coinWidth
 nextButton = Button('Next', 25,(0,0,0))
 nextButton.x, nextButton.y = width - nextButton.width, height - nextButton.height + hudHeight
 
+
+
 # text
 round_text = Button(f'Round {gameRound} complete', 25, (0,0,0))
 round_text.x = width / 2 - (round_text.width / 2)
 
+coins_display = Text()
 # debug list
 
 while True:
@@ -290,13 +308,21 @@ while True:
  ['coinsOnScreen:', len(coins)]
 ]
     frame += 1
-
+    # get mouse event
+    mouse_status = pygame.mouse.get_pressed()
+    # get mouse coordinates
+    mouse_coords = pygame.mouse.get_pos()
     
 
 
 
     # round complete
     if gameState == 'round_complete':
+        # get mouse event
+        mouse_status = pygame.mouse.get_pressed()
+        # get mouse coordinates
+        mouse_coords = pygame.mouse.get_pos()
+
         gameRound += 1
         enemiesToSpawn = gameRound * random.randint(1,3)
         gameState = 'play'
@@ -307,10 +333,7 @@ while True:
             # fill background
             screen.fill((0,0,0))
             
-            # get mouse event
-            mouse_status = pygame.mouse.get_pressed()
-            # get mouse coordinates
-            mouse_coords = pygame.mouse.get_pos()
+            
 
             nextButton.isMouseHover()
             if nextButton.isClick((1,0,0)):
@@ -476,9 +499,16 @@ while True:
             del enemies[enemyIndex]
         
         # updates the enemy index 
-        
+    # print bullets    
     displayBullets()
+
+    
+
+    # hud display
+    # show health
     displayHp()
+    # show coins
+    coins_display.draw(25, f'x{player.coins}', (243, 155, 0), [width - coins_display.width - 10, height + coins_display.height], screen)
 
     # draw character
     player.update()
